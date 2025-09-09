@@ -20,12 +20,4 @@
 - n8n Cloud account
 - HuggingFace account (for Qwen inference)
 
-### Environment Variables
 
-Create `.env` in `/frontend`:
-
-```env
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_KEY=your_supabase_anon_key
-VITE_MAPBOX_TOKEN=your_mapbox_token
-VITE_N8N_WEBHOOK_URL=https://your-n8n-subdomain.n8n.cloud/webhook
