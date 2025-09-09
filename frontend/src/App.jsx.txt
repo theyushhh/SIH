@@ -1,0 +1,132 @@
+import React, { useState, useEffect } from 'react';
+import MapView from './components/MapView.jsx';
+import Sidebar from './components/Sidebar.jsx';
+import supabase from './supabaseClient.js';
+
+const App = () => {
+  const [claims, setClaims] = useState([]);
+  const [filters, setFilters] = useState({
+    state: '',
+    type: '',
+    status: ''
+  });
+  const [kpi, setKpi] = useState({ total: 0, approved: 0, pending: 0, rejected: 0 });
+  const [selectedClaim, setSelectedClaim] = useState(null);
+  const [schemes, setSchemes] = useState([]);
+
+  // Fetch claims and KPIs
+  useEffect(() => {
+    const fetchClaims = async () => {
+      let query = supabase
+        .from('fra_claims')
+        .select(`
+          id,
+          claim_type,
+          status,
+          claim_date,
+          resolution_date,
+          remarks,
+          families (name, village, state)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (filters.state) query = query.eq('families.state', filters.state);
+      if (filters.type) query = query.eq('claim_type', filters.type);
+      if (filters.status) query = query.eq('status', filters.status);
+
+      const { data, error } = await query;
+      if (error) {
+        console.error('Error fetching claims:', error);
+        return;
+      }
+
+      setClaims(data || []);
+
+      // Calculate KPIs
+      const total = data?.length || 0;
+      const approved = data?.filter(c => c.status === 'approved').length || 0;
+      const pending = data?.filter(c => c.status === 'pending').length || 0;
+      const rejected = data?.filter(c => c.status === 'rejected').length || 0;
+      setKpi({ total, approved, pending, rejected });
+    };
+
+    fetchClaims();
+  }, [filters]);
+
+  // Fetch schemes for selected claim
+  useEffect(() => {
+    if (!selectedClaim) {
+      setSchemes([]);
+      return;
+    }
+
+    const fetchSchemes = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_N8N_WEBHOOK_URL}/dss_scheme_matcher`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ claim_id: selectedClaim.id })
+        });
+
+        const result = await response.json();
+        setSchemes(result.recommended_schemes || []);
+      } catch (error) {
+        console.error('Error fetching schemes:', error);
+      }
+    };
+
+    fetchSchemes();
+  }, [selectedClaim]);
+
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleExportCSV = () => {
+    const Papa = require('papaparse');
+    const csv = Papa.unparse(claims.map(c => ({
+      'Claim ID': c.id,
+      'Family Name': c.families?.name || '',
+      'Village': c.families?.village || '',
+      'State': c.families?.state || '',
+      'Claim Type': c.claim_type,
+      'Status': c.status,
+      'Claim Date': c.claim_date,
+      'Resolution Date': c.resolution_date || '',
+      'Remarks': c.remarks || ''
+    })));
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', 'fra_claims_export.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <div className="flex h-screen bg-gray-900 text-gray-100">
+      {/* Sidebar */}
+      <Sidebar
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        kpi={kpi}
+        selectedClaim={selectedClaim}
+        setSelectedClaim={setSelectedClaim}
+        schemes={schemes}
+        onExportCSV={handleExportCSV}
+      />
+
+      {/* Map View */}
+      <div className="flex-1 relative">
+        <MapView
+          claims={claims}
+          onClaimClick={setSelectedClaim}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default App;

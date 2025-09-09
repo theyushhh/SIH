@@ -1,0 +1,267 @@
+import React, { useState, useEffect, useRef } from 'react';
+
+// 📚 Offline FRA Legal Knowledge Base (Fallback)
+const FRA_KNOWLEDGE_BASE = [
+  {
+    question: /section 3\(1\)\(a\)/i,
+    answer: "Under FRA Section 3(1)(a), forest dwelling families have the right to hold and live on forest land for habitation or self-cultivation. This right is heritable but not transferable. Must be verified by Gram Sabha. [Source: FRA 2006, Sec 3(1)(a)]"
+  },
+  {
+    question: /section 3\(1\)\(b\)/i,
+    answer: "Under FRA Section 3(1)(b), communities have the right to own, collect, use, and dispose of minor forest produce (MFP) traditionally collected within or outside village boundaries. Includes bamboo, tendu, honey, herbs. [Source: FRA 2006, Sec 3(1)(b)]"
+  },
+  {
+    question: /section 3\(1\)\(c\)/i,
+    answer: "Under FRA Section 3(1)(c), communities have the right to grazing grounds and pastoralist routes inside forests. Applies to traditional cattle grazers and nomadic tribes. [Source: FRA 2006, Sec 3(1)(c)]"
+  },
+  {
+    question: /section 3\(1\)\(d\)/i,
+    answer: "Under FRA Section 3(1)(d), communities have the right to fish and other products of water bodies in forest areas. Traditional fishing rights are protected. [Source: FRA 2006, Sec 3(1)(d)]"
+  },
+  {
+    question: /section 3\(1\)\(e\)/i,
+    answer: "Under FRA Section 3(1)(e), communities have the right to protect, regenerate, conserve, or manage any community forest resource. Includes sacred groves, water sources, biodiversity zones. [Source: FRA 2006, Sec 3(1)(e)]"
+  },
+  {
+    question: /section 3\(1\)\(f\)/i,
+    answer: "Under FRA Section 3(1)(f), communities have the right to intellectual property and traditional knowledge related to biodiversity and cultural diversity. [Source: FRA 2006, Sec 3(1)(f)]"
+  },
+  {
+    question: /section 3\(1\)\(g\)/i,
+    answer: "Under FRA Section 3(1)(g), communities have the right to manage and protect forests, wildlife, and biodiversity. Includes traditional conservation practices. [Source: FRA 2006, Sec 3(1)(g)]"
+  },
+  {
+    question: /section 3\(1\)\(h\)/i,
+    answer: "Under FRA Section 3(1)(h), communities have the right to protect, regenerate, or manage any community forest resource for sustainable use. [Source: FRA 2006, Sec 3(1)(h)]"
+  },
+  {
+    question: /section 4\(5\)/i,
+    answer: "FRA Section 4(5) prohibits eviction or relocation until the recognition and verification process is complete. No displacement without consent and rehabilitation. [Source: FRA 2006, Sec 4(5)]"
+  },
+  {
+    question: /section 6/i,
+    answer: "FRA Section 6 mandates that the Gram Sabha is the authority to initiate the process for determining forest rights. Recommendations go to Sub-Divisional Level Committee (SDLC) → District Level Committee (DLC). [Source: FRA 2006, Sec 6]"
+  },
+  {
+    question: /rejected claim/i,
+    answer: "If your FRA claim is rejected, you can appeal to the Sub-Divisional Level Committee (SDLC) within 60 days. If rejected again, appeal to District Level Committee (DLC). Final appeal to State Level Monitoring Committee. [Source: FRA Rules 2007, Rule 11]"
+  },
+  {
+    question: /how to file/i,
+    answer: "To file an FRA claim: (1) Submit Form I to Gram Sabha, (2) Gram Sabha verifies and displays publicly for 30 days, (3) SDLC reviews, (4) DLC approves. Attach maps, affidavits, oral testimonies. [Source: FRA Rules 2007]"
+  },
+  {
+    question: /community forest rights/i,
+    answer: "Community Forest Rights (CFR) under FRA include rights to protect, manage, and conserve forests. Apply through Gram Sabha using Form II. Requires community resolution and boundary map. [Source: FRA 2006, Sec 3(1)(i)]"
+  },
+  {
+    question: /individual forest rights/i,
+    answer: "Individual Forest Rights (IFR) include rights to land being cultivated by tribals or forest dwellers as on Dec 13, 2005. Max 4 hectares. Must be recommended by Gram Sabha. [Source: FRA 2006, Sec 3(1)(a)]"
+  },
+  {
+    question: /gram sabha role/i,
+    answer: "Gram Sabha is the primary authority under FRA. It receives claims, consolidates them, prepares map, displays publicly, and makes recommendations to SDLC. [Source: FRA Rules 2007, Rule 6]"
+  },
+  {
+    question: /sdlc/i,
+    answer: "Sub-Divisional Level Committee (SDLC) examines Gram Sabha recommendations, conducts field verification, and forwards to DLC. Chaired by Sub-Divisional Magistrate. [Source: FRA Rules 2007, Rule 9]"
+  },
+  {
+    question: /dlc/i,
+    answer: "District Level Committee (DLC) is the final approving authority for FRA claims. Chaired by District Collector. Issues pattas/titles. [Source: FRA Rules 2007, Rule 10]"
+  },
+  {
+    question: /fra amendment/i,
+    answer: "FRA was amended in 2022 to allow forest rights in tiger reserves and critical wildlife habitats, subject to conservation needs. Also clarified rights of OTFDs (Other Traditional Forest Dwellers). [Source: Forest (Conservation) Rules, 2022]"
+  },
+  {
+    question: /otfd/i,
+    answer: "Other Traditional Forest Dwellers (OTFDs) are non-tribal communities who have resided in forests for 3 generations (75 years) prior to Dec 13, 2005. Eligible for IFR and CFR. [Source: FRA 2006, Sec 2(o)]"
+  },
+  {
+    question: /default/i,
+    answer: "I specialize in India's Forest Rights Act 2006. Ask me about Section 3 rights, Section 6 process, rejected claims, community rights, or how to file. I’ll give you exact legal provisions with citations. Example: 'What is Section 3(1)(a)?'"
+  }
+];
+
+const ChatBot = ({ selectedClaim }) => {
+  const [messages, setMessages] = useState([
+    {
+      text: "🌿 Hello! I'm your FRA Legal Assistant powered by Gemini AI. Ask me about Forest Rights Act provisions, claim processes, or legal remedies — I’ll give you accurate, cited answers.",
+      sender: 'bot',
+      timestamp: new Date()
+    }
+  ]);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Get answer from offline KB
+  const getOfflineAnswer = (query) => {
+    for (let item of FRA_KNOWLEDGE_BASE) {
+      if (item.question.test(query)) {
+        return item.answer;
+      }
+    }
+    return FRA_KNOWLEDGE_BASE.find(q => q.question.test(/default/i))?.answer;
+  };
+
+  // Get answer from Gemini API
+  const getGeminiAnswer = async (query) => {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: `You are a legal expert on India's Forest Rights Act 2006. Answer the following query accurately with section numbers and citations. If unsure, say so. Query: "${query}"`
+              }]
+            }]
+          })
+        }
+      );
+
+      const data = await response.json();
+      
+      if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+        return data.candidates[0].content.parts[0].text.trim();
+      } else {
+        throw new Error('No response from Gemini');
+      }
+    } catch (error) {
+      console.error('Gemini API Error:', error);
+      return null;
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const userMessage = {
+      text: input,
+      sender: 'user',
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setIsTyping(true);
+
+    let answer = null;
+
+    // Try Gemini first
+    answer = await getGeminiAnswer(input);
+
+    // Fallback to offline KB if Gemini fails
+    if (!answer) {
+      answer = getOfflineAnswer(input);
+    }
+
+    const botMessage = {
+      text: answer,
+      sender: 'bot',
+      timestamp: new Date(),
+      source: answer.includes("Gemini") ? "Gemini AI" : "FRA Legal KB (Offline)"
+    };
+
+    setTimeout(() => {
+      setMessages(prev => [...prev, botMessage]);
+      setIsTyping(false);
+    }, 800);
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-gray-800 rounded-lg">
+      <div className="p-4 border-b border-gray-700">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-600 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="font-semibold text-white">FRA Legal AI</h3>
+            <p className="text-xs text-gray-400">Powered by Gemini + Offline KB</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
+            <div
+              className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
+                msg.sender === 'user'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-700 text-white border border-gray-600'
+              }`}
+            >
+              <p className="text-sm leading-relaxed">{msg.text}</p>
+              {msg.source && (
+                <p className="text-xs text-gray-300 mt-2 flex items-center">
+                  <span className="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
+                  {msg.source}
+                </p>
+              )}
+              <p className="text-xs text-gray-400 mt-1">
+                {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
+          </div>
+        ))}
+        {isTyping && (
+          <div className="flex justify-start">
+            <div className="bg-gray-700 px-4 py-3 rounded-2xl border border-gray-600">
+              <div className="flex space-x-2">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              </div>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      <form onSubmit={handleSubmit} className="p-4 border-t border-gray-700">
+        <div className="flex space-x-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask about FRA legal provisions, rights, or remedies..."
+            className="flex-1 bg-gray-700 text-white placeholder-gray-400 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            type="submit"
+            disabled={isTyping}
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white p-2 rounded-full transition flex items-center justify-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default ChatBot;

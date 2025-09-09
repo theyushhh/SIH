@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background-color: #111827;
+  color: #f3f4f6;
+}
+
+.mapboxgl-popup-content {
+  background-color: #1f2937 !important;
+  color: #f3f4f6 !important;
+  border-radius: 8px !important;
+  padding: 12px !important;
+}
+
+.mapboxgl-popup-content h4 {
+  margin: 0 0 8px 0;
+  font-weight: 600;
+}
+
+.mapboxgl-popup-content p {
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.mapboxgl-ctrl-group {
+  background: #1f2937 !important;
+  border: 1px solid #374151 !important;
+  border-radius: 6px !important;
+}
+
+.mapboxgl-ctrl-group button {
+  background: #374151 !important;
+  color: #e5e7eb !important;
+}
+
+.mapboxgl-ctrl-group button:hover {
+  background: #4b5563 !important;
+}
